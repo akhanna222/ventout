@@ -26,15 +26,10 @@ if [[ -z "${OPENAI_API_KEY:-}" ]]; then
   exit 1
 fi
 
-JWT_SECRET="${JWT_SECRET:-colab-secret}"
+JWT_SECRET="${JWT_SECRET:-colab-secret}" 
 POSTGRES_URL="${POSTGRES_URL:-sqlite+aiosqlite:///./listener.db}"
 
-if ! python -m venv .venv 2>/tmp/colab_venv_error.log; then
-  echo "venv creation failed (see /tmp/colab_venv_error.log). Installing virtualenv and retrying..." >&2
-  python -m pip install --upgrade pip >/dev/null
-  python -m pip install --upgrade virtualenv >/dev/null
-  python -m virtualenv .venv
-fi
+python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip >/dev/null
 pip install -r backend/requirements.txt >/dev/null
