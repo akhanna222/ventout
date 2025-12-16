@@ -71,25 +71,6 @@ pip install -r backend/requirements.txt
 uvicorn backend.app.main:app --reload
 ```
 
-### EC2 one-shot bootstrap (interactive)
-Use the helper script to clone the repo, prompt for keys, pick open ports, install deps, and start both servers in nohup sessions. It prefers security-group-open ports (80/443/3000/8000) and will prompt again if a port is already bound on the host.
-
-```bash
-# From a fresh EC2 host
-chmod +x scripts/ec2_bootstrap.sh
-./scripts/ec2_bootstrap.sh
-```
-
-Prompts you will see:
-- Git clone URL + branch/tag.
-- Install directory (default `~/listener-ai`).
-- Backend + frontend ports (script suggests a free port and re-prompts if busy).
-- OpenAI API key, JWT secret, Postgres URL (or blank for sqlite dev), optional S3 bucket/region/prefix.
-
-Notes:
-- The script writes `backend/.env`, installs Python/Node, builds the frontend, and starts uvicorn + Vite preview with nohup logs (`backend.log`, `frontend.log`).
-- Ensure your EC2 security group allows inbound access to the ports you choose (default open ones listed above). If all listed ports are in use, pick another free port and add a rule.
-
 Environment variables (example):
 ```
 OPENAI_API_KEY=...
@@ -114,40 +95,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
-## Quick test on Google Colab
-Colab works well for short backend checks. The helper script installs dependencies, writes a minimal `.env`, and can open a Cloudflare tunnel so you can hit FastAPI from your browser.
-
-1. In a new Colab notebook cell, set your key and clone:
-   ```python
-   import os, subprocess, textwrap
-   os.environ["OPENAI_API_KEY"] = "sk-..."  # required
-   subprocess.run("git clone https://github.com/<your-fork>/ventout.git", shell=True, check=True)
-   %cd ventout
-   ```
-2. Run the bootstrap script (defaults to port 8000, sqlite DB). Add `--with-tunnel` to expose a public URL via Cloudflare in another cell tab.
-   ```bash
-   !bash scripts/colab_quickstart.sh --with-tunnel
-   ```
-3. Watch logs for the tunnel URL (in `backend/colab_tunnel.log`) and backend status (`backend/colab_backend.log`).
-4. Try auth + voice note from Colab using `requests` (replace `TUNNEL_URL` if using a tunnel):
-   ```python
-   import requests, base64
-
-   base = "http://localhost:8000"  # or the tunnel URL
-   token = requests.post(f"{base}/auth/register", json={"email": "test@example.com", "password": "demo"}).json()["access_token"]
-   headers = {"Authorization": f"Bearer {token}"}
-
-   # Send a tiny silence wav for a smoke test
-   wav = base64.b64decode("UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=")
-   resp = requests.post(f"{base}/voice-note", files={"file": ("test.wav", wav, "audio/wav")}, headers=headers)
-   resp.json()
-   ```
-
-Notes:
-- The script uses sqlite by default; set `POSTGRES_URL` before running if you need Postgres.
-- The frontend is not started in Colab. You can still hit the FastAPI endpoints via the tunnel for API-level checks.
-- If ports are busy, rerun with `PORT=9000 bash scripts/colab_quickstart.sh --with-tunnel`.
 
 ## What to build next
 1. Wire JWT auth to Postgres. ✅
